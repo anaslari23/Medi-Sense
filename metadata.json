@@ -1,0 +1,8 @@
+{
+  "name": " MEDI-SENSE",
+  "description": "A multimodal AI medical evaluation system analyzing face cues, voice symptoms, and documents using Gemini 3 Pro.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
