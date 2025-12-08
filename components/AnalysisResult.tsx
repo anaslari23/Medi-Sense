@@ -87,7 +87,7 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
                <h3 className="text-xl font-bold uppercase tracking-tight">{data.severity_score} Severity</h3>
                <span className="text-[10px] uppercase font-bold px-2 py-1 bg-white/50 rounded border border-black/5">AI Triage</span>
             </div>
-            <p className="text-sm font-medium opacity-90 leading-relaxed">{data.doctor_ready_summary}</p>
+            <p className="text-sm font-medium opacity-90 leading-relaxed whitespace-pre-wrap">{data.doctor_ready_summary}</p>
          </div>
       </div>
 
