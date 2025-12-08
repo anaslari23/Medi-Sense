@@ -40,16 +40,37 @@ const responseSchema: Schema = {
         consistency_notes: { type: Type.STRING, description: "Comparison with voice/face inputs (e.g., 'Text claims severe pain but voice is calm')." },
       },
     },
-    document_findings: {
+    multi_file_analysis: {
       type: Type.OBJECT,
       properties: {
-        document_type: { type: Type.STRING, description: "Type of document (e.g., CBC, BMP, CXR Report)." },
-        abnormal_values: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Values outside reference ranges with clinical context." },
-        key_medical_terms: { type: Type.ARRAY, items: { type: Type.STRING } },
-        clinical_relevance: { type: Type.STRING, description: "Pattern-based interpretation of labs (e.g., 'Microcytic pattern')." },
-        extracted_medications: { type: Type.ARRAY, items: { type: Type.STRING } },
-        vital_signs: { type: Type.ARRAY, items: { type: Type.STRING } },
-      },
+        parsed_files: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              file_name: { type: Type.STRING },
+              doc_type: { type: Type.STRING },
+              key_findings: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          },
+          description: "Summary of each uploaded file."
+        },
+        abnormalities_detected: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Aggregated list of out-of-range labs or abnormal findings across all files." },
+        cross_correlations: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Trends (improving/worsening), contradictions between reports, or recurring issues." },
+        medications_identified: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              dose: { type: Type.STRING },
+              potential_interactions: { type: Type.STRING, description: "Cautious note on interactions or relevance to symptoms." }
+            }
+          },
+          description: "List of meds extracted from prescriptions or discharge summaries."
+        },
+        timeline_inference: { type: Type.STRING, description: "Inferred medical timeline based on dates in documents." }
+      }
     },
     combined_reasoning: {
       type: Type.OBJECT,
@@ -66,7 +87,7 @@ const responseSchema: Schema = {
   required: [
     "face_analysis",
     "voice_symptom_extraction",
-    "document_findings",
+    "multi_file_analysis",
     "combined_reasoning",
     "severity_score",
     "next_steps",
@@ -95,7 +116,7 @@ const fileToPart = async (file: Blob, mimeType: string) => {
 export const analyzeMedicalInputs = async (
   faceImage: string | null,
   audioBlob: Blob | null,
-  documentFile: File | null,
+  documentFiles: File[] | null,
   textInput: string | null
 ): Promise<MediSenseResponse> => {
   const parts: any[] = [];
@@ -143,7 +164,14 @@ export const analyzeMedicalInputs = async (
     - **A**ggravating / **R**elieving Factors
     - **S**everity (Pain score or functional impact)
 
-    **B. DIFFERENTIAL THINKING (Logic Chain)**
+    **B. BATCH DOCUMENT ANALYSIS (Multi-File)**
+    Process ALL uploaded documents as a coherent patient record:
+    - **Cross-Reference**: Compare dates to find trends (e.g., "Creatinine rising from 1.2 in June to 1.8 in July").
+    - **Consistency**: Highlight if the discharge summary contradicts the medication list.
+    - **Medication Review**: Extract all drugs. Flag potential interactions with symptoms (e.g., "Patient reports dizziness; on lisinopril").
+    - **Vitals**: Aggregate vitals from multiple reports to check stability.
+
+    **C. DIFFERENTIAL THINKING (Logic Chain)**
     When forming the 'combined_reasoning', mentally cycle through **VINDICATE**:
     - **V**ascular (Clots, Ischemia)
     - **I**nfectious (Viral, Bacterial, Sepsis)
@@ -155,20 +183,15 @@ export const analyzeMedicalInputs = async (
     - **T**rauma
     - **E**ndocrine / Metabolic
 
-    **C. CROSS-MODALITY INTEGRATION**
+    **D. CROSS-MODALITY INTEGRATION**
     - Integrate all modalities into the Logic Chain.
 
-    **D. CLINICAL SCORING (Qualitative Risk Assessment)**
+    **E. CLINICAL SCORING (Qualitative Risk Assessment)**
     Do not calculate scores formally, but use their criteria to determine 'severity_score':
     - **Sepsis/Infection**: Screen for qSOFA/SIRS (High RR, Altered Mental Status, Low BP history).
     - **Respiratory**: Screen for CURB-65 criteria (Confusion, Urea, RR, BP, Age).
     - **Vascular**: Screen for Wells Criteria (DVT/PE signs like unilateral swelling + tachycardia).
     - **General**: Use NEWS2 principles (Are vitals deviating from norm?).
-
-    **E. LAB INTERPRETATION (Pattern Recognition)**
-    - **Anemia**: Low Hb + High RDW? Check MCV (Micro/Macro).
-    - **Infection**: Leukocytosis (High WBC) + Neutrophilia (Bacterial) vs Lymphocytosis (Viral).
-    - **Organ Stress**: Creatinine/BUN (Kidney), AST/ALT/Bilirubin (Liver).
 
     ================================================================
     3. MANDATORY CLINICAL CONSISTENCY CHECKER (Internal Second Pass)
@@ -195,7 +218,7 @@ export const analyzeMedicalInputs = async (
 
     **Doctor Ready Summary Structure (SBAR Style):**
     - **S**ituation: Age/Sex (if known) + Chief Complaint.
-    - **B**ackground: History/Timeline (OLDCARTS).
+    - **B**ackground: History/Timeline (OLDCARTS) + Relevant Document History.
     - **A**ssessment: Synthesis of findings using probabilistic language ("suggests", "consistent with").
     - **R**ecommendation: Triage urgency and specific next steps.
   `;
@@ -209,30 +232,33 @@ export const analyzeMedicalInputs = async (
         mimeType: 'image/jpeg',
       },
     });
-    parts.push({ text: "Input 1 (Vision): Patient face. Analyze for: Cyanosis, Pallor, Jaundice, Ptosis, Facial Droop, Angioedema, Rash distribution, Work of breathing (nasal flaring)." });
+    parts.push({ text: "Input (Vision): Patient face. Analyze for: Cyanosis, Pallor, Jaundice, Ptosis, Facial Droop, Angioedema, Rash distribution, Work of breathing (nasal flaring)." });
   }
 
   // 2. Process Audio
   if (audioBlob) {
     const audioPart = await fileToPart(audioBlob, audioBlob.type || 'audio/webm');
     parts.push(audioPart);
-    parts.push({ text: "Input 2 (Audio): Patient voice. Transcribe and extract symptoms using OLDCARTS/OPQRST. Listen for stridor, wheezing, or dyspneic speech patterns." });
+    parts.push({ text: "Input (Audio): Patient voice. Transcribe and extract symptoms using OLDCARTS/OPQRST. Listen for stridor, wheezing, or dyspneic speech patterns." });
   }
 
-  // 3. Process Document
-  if (documentFile) {
-    const docPart = await fileToPart(documentFile, documentFile.type);
-    parts.push(docPart);
-    parts.push({ text: `Input 3 (Document): ${documentFile.name}. Extract values. Analyze patterns (e.g., Anemia, Leukocytosis, Electrolyte imbalance).` });
+  // 3. Process Documents (Batch)
+  if (documentFiles && documentFiles.length > 0) {
+    for (let i = 0; i < documentFiles.length; i++) {
+      const file = documentFiles[i];
+      const docPart = await fileToPart(file, file.type);
+      parts.push(docPart);
+      parts.push({ text: `Input (Document ${i + 1} - ${file.name}): Medical record/Image. Extract values, identifying information (redact name), meds, and findings. Correlate with other docs.` });
+    }
   }
 
   // 4. Process Text Input
   if (textInput) {
-    parts.push({ text: `Input 4 (Text Symptoms): "${textInput}". Parse via OLDCARTS. Check for Red Flags (e.g. Chest Pain, SOB). Cross-reference with other inputs for consistency.` });
+    parts.push({ text: `Input (Text Symptoms): "${textInput}". Parse via OLDCARTS. Check for Red Flags (e.g. Chest Pain, SOB). Cross-reference with other inputs for consistency.` });
   }
 
   if (parts.length === 0) {
-    throw new Error("No inputs provided for analysis. Please provide at least one input (Face, Voice, Document, or Text).");
+    throw new Error("No inputs provided for analysis. Please provide at least one input (Face, Voice, Documents, or Text).");
   }
 
   try {

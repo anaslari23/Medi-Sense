@@ -26,12 +26,21 @@ export interface TextSymptomExtraction {
 }
 
 export interface DocumentFindings {
+  // Deprecated in favor of multi_file_analysis, kept for backward compat if needed
   document_type?: string;
   abnormal_values?: string[];
   key_medical_terms?: string[];
   clinical_relevance?: string;
   extracted_medications?: string[];
   vital_signs?: string[];
+}
+
+export interface MultiFileAnalysis {
+  parsed_files?: { file_name: string; doc_type: string; key_findings: string[] }[];
+  abnormalities_detected?: string[];
+  cross_correlations?: string[];
+  medications_identified?: { name: string; dose?: string; potential_interactions?: string }[];
+  timeline_inference?: string;
 }
 
 export interface CombinedReasoning {
@@ -44,7 +53,8 @@ export interface MediSenseResponse {
   face_analysis: FaceAnalysis;
   voice_symptom_extraction: VoiceSymptomExtraction;
   text_symptom_extraction?: TextSymptomExtraction;
-  document_findings: DocumentFindings;
+  document_findings?: DocumentFindings; // Optional legacy support
+  multi_file_analysis: MultiFileAnalysis;
   combined_reasoning: CombinedReasoning;
   severity_score: "Low" | "Moderate" | "High" | "Critical";
   next_steps: string[];
