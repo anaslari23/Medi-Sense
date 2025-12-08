@@ -33,10 +33,12 @@ const responseSchema: Schema = {
     document_findings: {
       type: Type.OBJECT,
       properties: {
-        document_type: { type: Type.STRING },
-        abnormal_values: { type: Type.ARRAY, items: { type: Type.STRING } },
+        document_type: { type: Type.STRING, description: "Type of document (e.g., Blood Test, Prescription, X-Ray Report, Vitals)." },
+        abnormal_values: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of lab values that are out of range." },
         key_medical_terms: { type: Type.ARRAY, items: { type: Type.STRING } },
-        clinical_relevance: { type: Type.STRING },
+        clinical_relevance: { type: Type.STRING, description: "Human-readable explanation of the findings." },
+        extracted_medications: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Names of medications found in prescriptions." },
+        vital_signs: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Extracted vital signs like BP, HR, Temp from images." },
       },
     },
     combined_reasoning: {
@@ -93,17 +95,23 @@ export const analyzeMedicalInputs = async (
     Analyze the provided inputs:
     1. Visual Face Cues (from camera)
     2. Voice/Audio Symptom Descriptions
-    3. Medical Documents (PDF/Images)
+    3. Medical Documents (PDFs, Prescriptions, Diagnostic Images, Vital Signs)
     
     GUIDELINES:
     1. **Safety First**: NEVER diagnose a disease. Use descriptive, observational language (e.g., "indicators consistent with," "visual signs of," "potential markers for").
     2. **Visual Analysis (Face)**:
        - Analyze the face image specifically for: Fatigue, Eye Redness, Pallor, Jaundice Tint, Facial Swelling, Asymmetry, and Rashes/Inflammation.
        - Be precise. If a feature is not present, state "None observed".
-    3. **Multimodal Reasoning**: 
-       - Cross-reference findings. Example: If the face shows "Pallor" and the audio mentions "dizziness", link them in the reasoning section.
-    4. **Triage**: Determine urgency (Severity Score) based on the *combination* of data points.
-    5. **Structure**: Return strictly JSON matching the provided schema.
+    3. **Document Analysis**:
+       - **Lab Reports (PDFs)**: Extract lab parameters (WBC, RBC, Platelets, Hemoglobin, Creatinine, etc.). Identify values strictly out of range and list them in 'abnormal_values'. Provide a simplified explanation in 'clinical_relevance'.
+       - **Prescriptions (Images)**: Read and list medicine names in 'extracted_medications'. Summarize instructions.
+       - **Diagnostic Scans (Images/X-rays)**: Summarize key text/labels found on the image. **DO NOT** interpret the medical imagery itself (e.g., do not say "I see a fracture" based on the visual bone structure). Only report what the text on the scan says or general visual observations like "image contains chest x-ray".
+       - **Vital Signs (Screenshots)**: Extract values (BP, SpO2, Heart Rate) into 'vital_signs'.
+    4. **Voice Analysis**:
+       - Transcribe symptoms, severity, timeline, and aggravating factors.
+    5. **Multimodal Reasoning**: 
+       - Cross-reference findings. Example: If document shows "Anemia" and face shows "Pallor", explicitly link them.
+    6. **Triage**: Determine urgency (Severity Score) based on the *combination* of data points.
     
     If an input is missing, perform analysis on the available data and mark missing sections as "No data provided".
   `;
@@ -132,7 +140,7 @@ export const analyzeMedicalInputs = async (
   if (documentFile) {
     const docPart = await fileToPart(documentFile, documentFile.type);
     parts.push(docPart);
-    parts.push({ text: `Input 3: Medical document (${documentFile.name}). Extract abnormal values and clinical relevance.` });
+    parts.push({ text: `Input 3: Medical document (${documentFile.name}). Identify type (Lab Report, Prescription, Scan, Vitals). Extract abnormal values, medicines, or key text findings.` });
   }
 
   if (parts.length === 0) {

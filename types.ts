@@ -22,6 +22,8 @@ export interface DocumentFindings {
   abnormal_values?: string[];
   key_medical_terms?: string[];
   clinical_relevance?: string;
+  extracted_medications?: string[];
+  vital_signs?: string[];
 }
 
 export interface CombinedReasoning {
