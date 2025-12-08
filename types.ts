@@ -17,6 +17,14 @@ export interface VoiceSymptomExtraction {
   key_symptoms?: string[];
 }
 
+export interface TextSymptomExtraction {
+  structured_symptoms?: string[];
+  timeline_analysis?: string;
+  pain_severity?: string;
+  red_flags_detected?: string[];
+  consistency_notes?: string;
+}
+
 export interface DocumentFindings {
   document_type?: string;
   abnormal_values?: string[];
@@ -35,6 +43,7 @@ export interface CombinedReasoning {
 export interface MediSenseResponse {
   face_analysis: FaceAnalysis;
   voice_symptom_extraction: VoiceSymptomExtraction;
+  text_symptom_extraction?: TextSymptomExtraction;
   document_findings: DocumentFindings;
   combined_reasoning: CombinedReasoning;
   severity_score: "Low" | "Moderate" | "High" | "Critical";

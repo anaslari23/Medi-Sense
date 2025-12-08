@@ -3,6 +3,7 @@ import { Activity, LayoutDashboard, AlertCircle, FileText } from 'lucide-react';
 import { CameraCapture } from './components/CameraCapture';
 import { AudioRecorder } from './components/AudioRecorder';
 import { DocumentUpload } from './components/DocumentUpload';
+import { TextSymptomInput } from './components/TextSymptomInput';
 import { AnalysisResult } from './components/AnalysisResult';
 import { analyzeMedicalInputs } from './services/geminiService';
 import { MediSenseResponse } from './types';
@@ -11,13 +12,14 @@ function App() {
   const [faceImage, setFaceImage] = useState<string | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [textInput, setTextInput] = useState<string>("");
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<MediSenseResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
-    if (!faceImage && !audioBlob && !documentFile) {
+    if (!faceImage && !audioBlob && !documentFile && !textInput) {
       setError("Please provide at least one input.");
       return;
     }
@@ -27,7 +29,7 @@ function App() {
     setResult(null);
 
     try {
-      const data = await analyzeMedicalInputs(faceImage, audioBlob, documentFile);
+      const data = await analyzeMedicalInputs(faceImage, audioBlob, documentFile, textInput || null);
       setResult(data);
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred during analysis.");
@@ -79,6 +81,12 @@ function App() {
               hasAudio={!!audioBlob}
             />
             
+            <TextSymptomInput 
+              text={textInput}
+              setText={setTextInput}
+              onClear={() => setTextInput("")}
+            />
+
             <DocumentUpload 
               onUpload={setDocumentFile} 
               onClear={() => setDocumentFile(null)}
@@ -136,7 +144,7 @@ function App() {
                  </div>
                  <p className="text-sm font-medium">Awaiting Data for Analysis</p>
                  <p className="text-xs max-w-xs text-center mt-2 opacity-70">
-                   Provide face, voice, or document inputs on the left sidebar and generate a report.
+                   Provide face, voice, text, or document inputs on the left sidebar and generate a report.
                  </p>
                </div>
              ) : (

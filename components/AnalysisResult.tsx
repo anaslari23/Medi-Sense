@@ -1,6 +1,6 @@
 import React from 'react';
 import { MediSenseResponse } from '../types';
-import { Activity, Brain, FileSearch, Mic, Eye, ArrowRight, ShieldAlert, Loader2, Pill, HeartPulse } from 'lucide-react';
+import { Activity, Brain, FileSearch, Mic, Eye, ArrowRight, Loader2, Pill, HeartPulse, Keyboard, AlertTriangle } from 'lucide-react';
 
 interface AnalysisResultProps {
   data: MediSenseResponse | null;
@@ -21,17 +21,18 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
         </div>
 
         {/* Grid Loading */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
            <div className="h-64 bg-white rounded-xl border border-slate-200 p-4 space-y-3">
              <div className="h-5 w-1/3 bg-slate-100 rounded mb-4"></div>
              <div className="h-3 w-full bg-slate-100 rounded"></div>
-             <div className="h-3 w-5/6 bg-slate-100 rounded"></div>
-             <div className="h-3 w-4/6 bg-slate-100 rounded"></div>
            </div>
            <div className="h-64 bg-white rounded-xl border border-slate-200 p-4 space-y-3">
              <div className="h-5 w-1/3 bg-slate-100 rounded mb-4"></div>
              <div className="h-3 w-full bg-slate-100 rounded"></div>
-             <div className="h-3 w-5/6 bg-slate-100 rounded"></div>
+           </div>
+           <div className="h-64 bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+             <div className="h-5 w-1/3 bg-slate-100 rounded mb-4"></div>
+             <div className="h-3 w-full bg-slate-100 rounded"></div>
            </div>
            <div className="h-64 bg-white rounded-xl border border-slate-200 p-4 space-y-3">
              <div className="h-5 w-1/3 bg-slate-100 rounded mb-4"></div>
@@ -91,14 +92,14 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
          </div>
       </div>
 
-      {/* Main Grid: Face, Voice, Docs */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Grid: Face, Voice, Text, Docs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         
         {/* Face Analysis Stream */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50 rounded-t-xl">
              <Eye className="w-4 h-4 text-teal-600" />
-             <h4 className="text-sm font-semibold text-slate-800">Face Analysis Stream</h4>
+             <h4 className="text-sm font-semibold text-slate-800">Visual Cues</h4>
           </div>
           <div className="p-4 space-y-4 flex-1">
              <div className="space-y-3 font-mono text-xs">
@@ -124,7 +125,7 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50 rounded-t-xl">
              <Mic className="w-4 h-4 text-indigo-600" />
-             <h4 className="text-sm font-semibold text-slate-800">Voice Symptom Extraction</h4>
+             <h4 className="text-sm font-semibold text-slate-800">Voice Analysis</h4>
           </div>
           <div className="p-4 flex-1 space-y-4">
              <div className="flex flex-wrap gap-2">
@@ -137,17 +138,58 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
              <div className="space-y-3 text-sm text-slate-600">
                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
                  <span className="text-slate-400 text-xs uppercase">Timeline</span>
-                 <span className="font-medium text-right">{data.voice_symptom_extraction.timeline}</span>
+                 <span className="font-medium text-right text-xs">{data.voice_symptom_extraction.timeline || "N/A"}</span>
                </div>
                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
                  <span className="text-slate-400 text-xs uppercase">Tone</span>
-                 <span className="font-medium text-right">{data.voice_symptom_extraction.emotional_tone}</span>
+                 <span className="font-medium text-right text-xs">{data.voice_symptom_extraction.emotional_tone || "N/A"}</span>
                </div>
                 <div className="flex justify-between">
                  <span className="text-slate-400 text-xs uppercase">Severity</span>
-                 <span className="font-medium text-right">{data.voice_symptom_extraction.reported_severity}</span>
+                 <span className="font-medium text-right text-xs">{data.voice_symptom_extraction.reported_severity || "N/A"}</span>
                </div>
              </div>
+          </div>
+        </div>
+
+        {/* Text Symptoms (New Card) */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
+          <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50 rounded-t-xl">
+             <Keyboard className="w-4 h-4 text-violet-600" />
+             <h4 className="text-sm font-semibold text-slate-800">Text Analysis</h4>
+          </div>
+          <div className="p-4 flex-1 space-y-4">
+             {/* Red Flags from Text */}
+             {data.text_symptom_extraction?.red_flags_detected && data.text_symptom_extraction.red_flags_detected.length > 0 && (
+                <div className="bg-red-50 p-2 rounded border border-red-100 flex gap-2 items-start">
+                   <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                   <div>
+                      <span className="text-xs font-bold text-red-700 uppercase block">Red Flags</span>
+                      <p className="text-xs text-red-600 leading-tight">
+                        {data.text_symptom_extraction.red_flags_detected.join(", ")}
+                      </p>
+                   </div>
+                </div>
+             )}
+
+             <div className="flex flex-wrap gap-2">
+                {data.text_symptom_extraction?.structured_symptoms?.map((s, i) => (
+                  <span key={i} className="px-2 py-1 bg-violet-50 text-violet-700 text-xs rounded-md border border-violet-100 font-medium">
+                    {s}
+                  </span>
+                ))}
+             </div>
+             
+             {data.text_symptom_extraction?.consistency_notes && (
+                <div className="text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 italic">
+                  <span className="not-italic font-semibold text-slate-500 block mb-1">Consistency Check:</span>
+                  "{data.text_symptom_extraction.consistency_notes}"
+                </div>
+             )}
+              
+             {!data.text_symptom_extraction && (
+                <p className="text-xs text-slate-400 italic">No text input provided.</p>
+             )}
           </div>
         </div>
 
@@ -155,11 +197,11 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50 rounded-t-xl">
              <FileSearch className="w-4 h-4 text-blue-600" />
-             <h4 className="text-sm font-semibold text-slate-800">Medical Data Extraction</h4>
+             <h4 className="text-sm font-semibold text-slate-800">Doc Data</h4>
           </div>
           <div className="p-4 flex-1 space-y-4 text-sm">
             <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
-               Type: <span className="font-semibold text-slate-700">{data.document_findings.document_type || "No Document"}</span>
+               Type: <span className="font-semibold text-slate-700">{data.document_findings.document_type || "None"}</span>
             </div>
             
             {/* Medications */}
@@ -178,45 +220,22 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
                </div>
             )}
 
-            {/* Vitals */}
-            {data.document_findings.vital_signs && data.document_findings.vital_signs.length > 0 && (
-               <div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <HeartPulse className="w-3 h-3" /> Vital Signs
-                  </div>
-                  <ul className="grid grid-cols-2 gap-2">
-                    {data.document_findings.vital_signs.map((vital, i) => (
-                      <li key={i} className="bg-slate-50 px-2 py-1 rounded text-xs text-slate-700 border border-slate-100">
-                        {vital}
-                      </li>
-                    ))}
-                  </ul>
-               </div>
-            )}
-
             {/* Abnormal Values */}
-            {data.document_findings.abnormal_values && data.document_findings.abnormal_values.length > 0 ? (
+            {data.document_findings.abnormal_values && data.document_findings.abnormal_values.length > 0 && (
                <div>
                  <span className="text-xs font-bold text-red-500 uppercase tracking-wide block mb-1">Abnormalities</span>
                  <ul className="space-y-1">
-                   {data.document_findings.abnormal_values.map((val, i) => (
-                     <li key={i} className="text-slate-700 flex items-start gap-2">
+                   {data.document_findings.abnormal_values.slice(0, 3).map((val, i) => (
+                     <li key={i} className="text-slate-700 flex items-start gap-2 text-xs">
                        <span className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5 flex-shrink-0"></span>
                        {val}
                      </li>
                    ))}
+                   {data.document_findings.abnormal_values.length > 3 && (
+                      <li className="text-xs text-slate-400 italic">+ {data.document_findings.abnormal_values.length - 3} more</li>
+                   )}
                  </ul>
                </div>
-            ) : (
-                (!data.document_findings.extracted_medications?.length && !data.document_findings.vital_signs?.length) && (
-                   <p className="text-slate-400 italic">No specific abnormal values or medications detected.</p>
-                )
-            )}
-            
-            {data.document_findings.clinical_relevance && (
-                <div className="bg-blue-50/50 p-2 rounded border border-blue-100 text-xs text-slate-700 leading-snug">
-                    <span className="font-semibold text-blue-800">Note:</span> {data.document_findings.clinical_relevance}
-                </div>
             )}
           </div>
         </div>
