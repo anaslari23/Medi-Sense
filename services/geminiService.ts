@@ -44,9 +44,9 @@ const responseSchema: Schema = {
     combined_reasoning: {
       type: Type.OBJECT,
       properties: {
-        cross_modality_correlations: { type: Type.ARRAY, items: { type: Type.STRING } },
-        pattern_recognition: { type: Type.STRING },
-        logic_chain: { type: Type.STRING },
+        cross_modality_correlations: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific logical connections found between different inputs (e.g., 'Face Pallor correlates with Low Hemoglobin')." },
+        pattern_recognition: { type: Type.STRING, description: "Identification of a broader clinical pattern or syndrome (e.g., 'Inflammatory Response', 'Anemia indicators')." },
+        logic_chain: { type: Type.STRING, description: "Step-by-step deduction path explaining why the inputs point to this pattern." },
       },
     },
     severity_score: { type: Type.STRING, enum: ["Low", "Moderate", "High", "Critical"] },
@@ -109,9 +109,20 @@ export const analyzeMedicalInputs = async (
        - **Vital Signs (Screenshots)**: Extract values (BP, SpO2, Heart Rate) into 'vital_signs'.
     4. **Voice Analysis**:
        - Transcribe symptoms, severity, timeline, and aggravating factors.
-    5. **Multimodal Reasoning**: 
-       - Cross-reference findings. Example: If document shows "Anemia" and face shows "Pallor", explicitly link them.
-    6. **Triage**: Determine urgency (Severity Score) based on the *combination* of data points.
+    5. **Multimodal Reasoning (CRITICAL)**: 
+       - You MUST logically connect findings across inputs to find patterns.
+       - **Examples of Reasoning**:
+         - IF Face(Pallor) AND Face(Fatigue) AND Doc(Low Hemoglobin) -> Output in 'cross_modality_correlations': "Physical pallor matches lab report showing anemia indicators."
+         - IF Face(Eye Redness) AND Voice(Nasal tone) -> Output: "Visual redness correlates with auditory signs of congestion."
+         - IF Face(Swelling) AND Doc(High WBC) -> Output: "Facial edema aligns with elevated white blood cell count suggesting inflammation."
+       - Populate 'combined_reasoning' with these insights.
+       - 'logic_chain' should explain the deduction: "Observation A from Image + Data B from Report suggests Condition C."
+    6. **Severity Scoring (Triage)**:
+       - **LOW**: Mild symptoms, no red flags, normal reports.
+       - **MODERATE**: Persistent symptoms, some abnormal lab values, noticeable facial cues.
+       - **HIGH**: Strong red flags, severe abnormalities, signs of distress in voice or face.
+       - **CRITICAL**: Immediate life-threatening indicators.
+       - Map the reasoning to one of these levels in 'severity_score'.
     
     If an input is missing, perform analysis on the available data and mark missing sections as "No data provided".
   `;

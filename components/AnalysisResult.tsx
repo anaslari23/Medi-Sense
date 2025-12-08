@@ -208,8 +208,6 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
                  </ul>
                </div>
             ) : (
-                // Only show "No abnormalities" if there isn't other data to show, to save space, or if it's explicitly a doc that should have them.
-                // But for now, if no medications and no vitals and no abnormalities, we can show a placeholder.
                 (!data.document_findings.extracted_medications?.length && !data.document_findings.vital_signs?.length) && (
                    <p className="text-slate-400 italic">No specific abnormal values or medications detected.</p>
                 )
@@ -227,14 +225,35 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
       {/* Reasoning & Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Logic Chain */}
+        {/* Logic Chain & Correlations */}
         <div className="bg-slate-800 text-slate-200 rounded-xl p-6 shadow-md border border-slate-700">
            <h4 className="text-sm font-bold text-teal-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-             <Brain className="w-4 h-4" /> Reasoning Chain
+             <Brain className="w-4 h-4" /> Multimodal Reasoning
            </h4>
+           
+           {/* Correlations Section */}
+           {data.combined_reasoning.cross_modality_correlations && data.combined_reasoning.cross_modality_correlations.length > 0 && (
+             <div className="mb-5 pb-4 border-b border-slate-700">
+               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-3">Key Correlations</span>
+               <ul className="space-y-2">
+                 {data.combined_reasoning.cross_modality_correlations.map((corr, i) => (
+                   <li key={i} className="flex items-start gap-2.5 text-sm text-teal-200">
+                     <span className="mt-1.5 w-1.5 h-1.5 bg-teal-500 rounded-full flex-shrink-0"></span>
+                     <span>{corr}</span>
+                   </li>
+                 ))}
+               </ul>
+             </div>
+           )}
+
            <div className="space-y-4 text-sm leading-relaxed">
               <p><strong className="text-white">Pattern Recognition:</strong> {data.combined_reasoning.pattern_recognition}</p>
-              <p className="text-slate-400 pl-4 border-l-2 border-slate-600">{data.combined_reasoning.logic_chain}</p>
+              <div>
+                <strong className="text-white block mb-1">Logic Chain:</strong>
+                <p className="text-slate-400 pl-3 border-l-2 border-slate-600 italic">
+                  "{data.combined_reasoning.logic_chain}"
+                </p>
+              </div>
            </div>
         </div>
 
