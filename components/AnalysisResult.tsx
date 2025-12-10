@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { MediSenseResponse } from '../types';
-import { Activity, Brain, FileSearch, Mic, Eye, ArrowRight, Loader2, Pill, ClipboardCheck, Keyboard, AlertTriangle, Syringe, Thermometer, Layers, AlertCircle } from 'lucide-react';
+import { Activity, Brain, FileSearch, Mic, Eye, ArrowRight, Loader2, Pill, ClipboardCheck, Keyboard, AlertTriangle, Syringe, Thermometer, Layers, AlertCircle, FileDown } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface AnalysisResultProps {
   data: MediSenseResponse | null;
@@ -8,6 +10,85 @@ interface AnalysisResultProps {
 }
 
 export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return;
+    setIsDownloading(true);
+
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f8fafc',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const ratio = canvasWidth / canvasHeight;
+      const pdfCanvasHeight = pdfWidth / ratio;
+      
+      let position = 0;
+      let heightLeft = canvasHeight;
+      
+      const addImageToPdf = (yPosition: number) => {
+        const sourceY = yPosition * (canvasWidth / pdfWidth);
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfCanvasHeight, undefined, 'FAST');
+      };
+
+      // Create a full-height image in memory first
+      const fullHeightPdf = new jsPDF({
+          orientation: 'p',
+          unit: 'mm',
+          format: [pdfWidth, pdfCanvasHeight]
+      });
+      fullHeightPdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfCanvasHeight);
+
+      // Then split it into A4 pages
+      const totalPages = Math.ceil(pdfCanvasHeight / pdf.internal.pageSize.getHeight());
+      
+      for (let i = 1; i <= totalPages; i++) {
+          if (i > 1) pdf.addPage();
+          const sourceCanvas = document.createElement('canvas');
+          sourceCanvas.width = canvas.width;
+          sourceCanvas.height = (canvas.height / totalPages);
+
+          const pageCanvas = await html2canvas(reportRef.current, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#f8fafc',
+              y: (i - 1) * (reportRef.current.offsetHeight / totalPages),
+              height: reportRef.current.offsetHeight / totalPages
+          });
+          
+          pdf.addImage(
+              pageCanvas.toDataURL('image/png'), 'PNG',
+              0, 0, pdfWidth, pdf.internal.pageSize.getHeight(), undefined, 'FAST'
+          );
+      }
+      
+      const totalPdfPages = Math.ceil(pdfCanvasHeight / pdf.internal.pageSize.getHeight());
+      pdf.deletePage(totalPdfPages + 1);
+
+      pdf.save(`MEDI-SENSE-Report-${Date.now()}.pdf`);
+
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Could not generate PDF. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse max-w-6xl mx-auto">
@@ -89,7 +170,7 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in-up pb-10 max-w-7xl mx-auto">
+    <div ref={reportRef} className="space-y-6 animate-fade-in-up pb-10 max-w-7xl mx-auto">
       
       {/* Top Banner: Severity & Summary */}
       <div className={`rounded-xl border p-6 flex flex-col md:flex-row gap-6 items-start shadow-sm ring-4 ring-offset-0 transition-colors ${styles.bg} ${styles.border} ${styles.ring} ${styles.text}`}>
@@ -104,7 +185,23 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, isLoading 
                  <h3 className="text-2xl font-bold tracking-tight uppercase">{data.severity_score} Severity</h3>
                  <span className="text-xs font-bold opacity-70 uppercase tracking-widest mt-1 block">Triage Classification</span>
                </div>
-               <span className="text-[10px] uppercase font-bold px-3 py-1 bg-white/60 rounded border border-black/5 shadow-sm">AI Generated Insight</span>
+               <button
+                 onClick={handleDownloadPDF}
+                 disabled={isDownloading}
+                 className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/60 hover:bg-white/90 border border-black/10 shadow-sm text-xs font-semibold text-slate-700 transition-all disabled:opacity-50 disabled:cursor-wait"
+               >
+                 {isDownloading ? (
+                   <>
+                     <Loader2 className="w-3 h-3 animate-spin" />
+                     <span>Generating...</span>
+                   </>
+                 ) : (
+                   <>
+                     <FileDown className="w-3 h-3" />
+                     <span>Download Report</span>
+                   </>
+                 )}
+               </button>
             </div>
             <div className="prose prose-sm max-w-none">
               <p className="font-medium opacity-90 leading-relaxed whitespace-pre-wrap text-base border-t border-black/5 pt-3 mt-1">

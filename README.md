@@ -1,16 +1,3 @@
-<div align="center">
-
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-
-  <h1>Built with AI Studio</h2>
-
-  <p>The fastest path from prompt to production with Gemini.</p>
-
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
-
-
 # MEDI-SENSE: Multimodal AI Medical Evaluator
 
 **MEDI-SENSE** is an advanced, AI-powered medical triage system designed to analyze patient health through multiple modalities: visual facial cues, vocal symptom descriptions, free-form text, and medical document uploads.
@@ -92,6 +79,9 @@ The AI is prompted to strictly follow medical education frameworks:
 ### 3. Safety & Consistency Protocols
 *   **Rule-Based Overrides**: Hard-coded logic forces "HIGH" or "CRITICAL" severity if keywords like "Chest Pain radiating to arm," "Syncope," or "Sudden vision loss" are detected.
 *   **Consistency Checker**: A mandatory "second pass" where the AI verifies its own conclusions against the evidence to prevent hallucinations and ensure text/voice/face data align.
+
+### 4. PDF Report Generation
+*   Download a comprehensive, printable PDF summary of the entire analysis for offline review or clinical handoff.
 
 ---
 
@@ -183,6 +173,7 @@ When a user clicks **"Generate Final Report"**, the data flows through the follo
 *   **Styling**: Tailwind CSS
 *   **Icons**: Lucide React
 *   **AI Model**: Google Gemini 3 Pro (via `@google/genai` SDK)
+*   **PDF Generation**: jsPDF, html2canvas
 *   **Build Tool**: Parcel / Vite (implied)
 
 ---
@@ -192,4 +183,4 @@ When a user clicks **"Generate Final Report"**, the data flows through the follo
 *   [ ] Integration with wearable health API (Apple Health / Google Fit).
 *   [ ] Multi-language support for non-English speakers.
 *   [ ] Local model fallback (Gemini Nano) for offline basic triage.
-*   [ ] PDF Report generation (downloadable output).
+*   [x] PDF Report generation (downloadable output).
